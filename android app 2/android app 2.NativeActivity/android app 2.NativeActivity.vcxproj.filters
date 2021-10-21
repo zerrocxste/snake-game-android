@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="android_native_app_glue.h" />
+    <ClInclude Include="drawing\drawing.h">
+      <Filter>drawing</Filter>
+    </ClInclude>
+    <ClInclude Include="game\game.h">
+      <Filter>game</Filter>
+    </ClInclude>
+    <ClInclude Include="color\color.h">
+      <Filter>color</Filter>
+    </ClInclude>
+    <ClInclude Include="vec2\vec2.h">
+      <Filter>vec2</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="android_native_app_glue.c" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="drawing\drawing.cpp">
+      <Filter>drawing</Filter>
+    </ClCompile>
+    <ClCompile Include="game\game.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="color\color.cpp">
+      <Filter>color</Filter>
+    </ClCompile>
+    <ClCompile Include="vec2\vec2.cpp">
+      <Filter>vec2</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="drawing">
+      <UniqueIdentifier>{d063643a-812b-499a-aebf-af4b9ce01f10}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="game">
+      <UniqueIdentifier>{5092aaca-8194-459c-8328-5b30105a8da5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="color">
+      <UniqueIdentifier>{c95e31e5-3bfc-4f9e-a04d-00e322f9a344}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vec2">
+      <UniqueIdentifier>{e80c1833-4483-41f0-972c-4c08e75aaff7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
