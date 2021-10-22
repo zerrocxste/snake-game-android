@@ -1,7 +1,7 @@
 #pragma once
 
-#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
-#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "AndroidProject1.NativeActivity", __VA_ARGS__))
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "SnakeGame.NativeActivity", __VA_ARGS__))
+#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "SnakeGame.NativeActivity", __VA_ARGS__))
 
 typedef unsigned long GAME_TICK_COUNTER;
 
@@ -18,23 +18,17 @@ private:
 
 	vec2 m_DisplaySize;
 
-	struct touch_coords
-	{
-		int x, y;
-	};
-
 	void* m_pTouchCoords;
 	void* m_pIsTouched;
 
 	void CalculateFieldSize();
-	void Logic();
-	touch_coords GetTouchCoords();
+	void RunLogic();
 	bool GetIsTouched();
 	void DrawInputs();
 	void InputControlSnake();
 	void DrawGame();
 	bool FindIntersectionGamePoint();
-	bool AddButton(vec2 pos, vec2 size, color col);
+	bool AddButton(vec2 pos, vec2 size, color col, bool activate_on_up = false);
 	void SetPointPosition();
 	void SnakeLevelUp();
 	void CleanupInput();
@@ -47,6 +41,13 @@ private:
 	void UpdateSnakeMovement();
 	void SnakeHistoryCollector();
 	void ClearGameState();
+
+	struct touch_coords
+	{
+		int x, y;
+	};
+
+	touch_coords GetTouchCoords();
 
 	enum DIRECTION
 	{

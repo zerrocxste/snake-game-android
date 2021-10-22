@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31424.327
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "android app 2", "android app 2", "{E0E58250-D75F-49F6-B0D8-3CB7C04E066A}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Snake", "Snake", "{E0E58250-D75F-49F6-B0D8-3CB7C04E066A}"
 EndProject
-Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "android app 2.Packaging", "android app 2\android app 2.Packaging\android app 2.Packaging.androidproj", "{A14CD37D-5CB8-4D75-9924-2ADB2267E44D}"
+Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "Snake", "android app 2\android app 2.Packaging\Snake.androidproj", "{A14CD37D-5CB8-4D75-9924-2ADB2267E44D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "android app 2.NativeActivity", "android app 2\android app 2.NativeActivity\android app 2.NativeActivity.vcxproj", "{A51E042A-398C-4A44-A9CD-CD8907FCAA95}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Snake.NativeActivity", "android app 2\android app 2.NativeActivity\android app 2.NativeActivity.vcxproj", "{A51E042A-398C-4A44-A9CD-CD8907FCAA95}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

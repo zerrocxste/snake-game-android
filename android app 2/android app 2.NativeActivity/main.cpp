@@ -17,8 +17,8 @@
 
 #include <malloc.h>
 
-#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
-#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "AndroidProject1.NativeActivity", __VA_ARGS__))
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "SnakeMain.NativeActivity", __VA_ARGS__))
+#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "SnakeMain.NativeActivity", __VA_ARGS__))
 
 struct viewportgl 
 {
@@ -133,8 +133,7 @@ static void engine_draw_frame(struct engine* engine) {
 	}
 
 	// Просто заполнить экран цветом.
-	glClearColor(((float)engine->state.x) / engine->width, engine->state.angle,
-		((float)engine->state.y) / engine->height, 1);
+	glClearColor(((float)engine->state.x) / engine->width, engine->state.angle,	((float)engine->state.y) / engine->height, 1);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	auto width = engine->width;
@@ -218,6 +217,7 @@ static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
 			ASensorEventQueue_setEventRate(engine->sensorEventQueue,
 				engine->accelerometerSensor, (1000L / 60) * 1000);
 		}
+		engine->animating = 1;
 		break;
 	case APP_CMD_LOST_FOCUS:
 		// При потере фокуса приложением мы прекращаем мониторинг акселерометра.
@@ -232,17 +232,6 @@ static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
 		break;
 	}
 }
-
-inline void mylog(const char* _Format, ...) {
-//#ifdef _DEBUG
-	char outStr[1024];
-	va_list _ArgList;
-	va_start(_ArgList, _Format);
-	vsprintf(outStr, _Format, _ArgList);
-	__android_log_print(ANDROID_LOG_INFO, "mylog", outStr, NULL);
-	va_end(_ArgList);
-//#endif
-};
 
 /**
 * Это главная точка входа приложения в машинном коде, которое использует
@@ -314,10 +303,10 @@ void android_main(struct android_app* state) {
 
 		if (engine.animating) {
 			// Закончили с событиями. Можно рисовать следующий кадр анимации.
-			engine.state.angle += .01f;
+			/*engine.state.angle += .01f;
 			if (engine.state.angle > 1) {
 				engine.state.angle = 0;
-			}
+			}*/
 
 			// Рисование регулируется скоростью обновления экрана, поэтому
 			// здесь не нужно выполнять синхронизацию.
@@ -325,68 +314,3 @@ void android_main(struct android_app* state) {
 		}
 	}
 }
-
-//glMatrixMode(GL_PROJECTION);
-			//glLoadIdentity();
-
-			//glOrthof(0, engine.width, engine.height, 0, 0, 1);
-			//glDisable(GL_DEPTH_TEST);
-			//glMatrixMode(GL_MODELVIEW);
-
-			//glPushMatrix();
-			//glLoadIdentity();
-			//glDisable(GL_TEXTURE_2D);
-
-			//glEnable(GL_BLEND);
-			//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-			//GLfloat vertices[] = { -1, -1, 0, // bottom left corner
-			//		  -1,  1, 0, // top left corner
-			//		   1,  1, 0, // top right corner
-			//		   1, -1, 0 }; // bottom right corner
-
-			//GLubyte indices[] = { 0,1,2, // first triangle (bottom left - top left - top right)
-			//					 0,2,3 }; // second triangle (bottom left - top right - bottom right)
-
-			//glVertexPointer(3, GL_FLOAT, 0, vertices);
-			//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, indices);
-
-			//glDisable(GL_BLEND);
-
-			//glPopMatrix();
-
-			//glEnable(GL_TEXTURE_2D);
-			//glEnable(GL_DEPTH_TEST);
-
-
-
-//GLfloat vertices[] = { /*50.0f, 00.0f,
-	//		360.0f, 200.0f,
-	//		360.0f, 600.0f,*/
-	//		120.0f, 200.0f,
-	//		360.0f, 600.0f,
-	//		120.0f, 600.0f };
-
-	//glColor4f(1.f, 0.f, 0.f, 1.f);
-
-	//glEnableClientState(GL_VERTEX_ARRAY);
-	//glVertexPointer(2, GL_FLOAT, 0, vertices);
-	//glDrawArrays(GL_TRIANGLES, 0, 3);
-	///*glDrawArrays(GL_TRIANGLES, 3, 3);*/
-
-
-
-	//GLfloat vertices[] = { 
-	//	100.0f, 100.0f,
-	//	200.0f, 200.0f,
-	//	100.0f, 200.0f,
-	//	
-	//	//200.0f, 200.0f
-	//};
-
-	//glColor4f(1.f, 0.f, 0.f, 1.f);
-
-	//glEnableClientState(GL_VERTEX_ARRAY);
-	//glVertexPointer(2, GL_FLOAT, 0, vertices);
-	//glDrawArrays(GL_TRIANGLES, 0, 3);
-	//glDrawArrays(GL_TRIANGLES, 3, 3);

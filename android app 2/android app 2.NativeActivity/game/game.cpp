@@ -28,12 +28,12 @@ void CGame::Run()
 {
 	DrawInputs();
 
-	Logic();
+	RunLogic();
 
 	DrawGame();
 }
 
-void CGame::Logic()
+void CGame::RunLogic()
 {
 	InputControlSnake();
 	UpdateGameTick();
@@ -60,15 +60,15 @@ bool CGame::GetIsTouched()
 
 void CGame::DrawInputs()
 {
-	CleanupInput();
-
 	/*if (GetIsTouched())
 		LOGI("[+] %s. %d, %d", __FUNCTION__, GetTouchCoords().x, GetTouchCoords().y);*/
 
-	auto vButtonSize = vec2(300.f, 300.f);
+	CleanupInput();
+
+	auto vButtonSize = vec2(250.f, 250.f);
 
 	auto iScreenCenterX = (this->m_DisplaySize.x / 2.f) - (vButtonSize.x / 2.f);
-	auto iScreenCenterY = (this->m_DisplaySize.y / 2.f);
+	auto iScreenCenterY = (this->m_DisplaySize.y / 2.f) + 80.f;
 
 	if (AddButton(vec2(iScreenCenterX, iScreenCenterY + 200.f), vButtonSize, color(1.f, 0.f, 0.f, 1.f)))
 		this->m_InputController.m_bIsPressed[input_controller::GAME_KEYS::UP] = true;
@@ -76,30 +76,47 @@ void CGame::DrawInputs()
 	if (AddButton(vec2(iScreenCenterX, iScreenCenterY + 600.f), vButtonSize, color(1.f, 0.f, 0.f, 1.f)))
 		this->m_InputController.m_bIsPressed[input_controller::GAME_KEYS::DOWN] = true;
 
-	if (AddButton(vec2(iScreenCenterX - 350.f, iScreenCenterY + 400.f), vButtonSize, color(1.f, 0.f, 0.f, 1.f)))
+	if (AddButton(vec2(iScreenCenterX - 300.f, iScreenCenterY + 400.f), vButtonSize, color(1.f, 0.f, 0.f, 1.f)))
 		this->m_InputController.m_bIsPressed[input_controller::GAME_KEYS::LEFT] = true;
 
-	if (AddButton(vec2(iScreenCenterX + 350.f, iScreenCenterY + 400.f), vButtonSize, color(1.f, 0.f, 0.f, 1.f)))
+	if (AddButton(vec2(iScreenCenterX + 300.f, iScreenCenterY + 400.f), vButtonSize, color(1.f, 0.f, 0.f, 1.f)))
 		this->m_InputController.m_bIsPressed[input_controller::GAME_KEYS::RIGHT] = true;
+
+	if (AddButton(vec2(70.f, this->m_DisplaySize.y - 250.f), vec2(200.f, 200.f), this->m_GameState.m_bStopGame ? color(1.f, 1.f, 0.5f, 1.f) : color(0.5f, 0.5f, 1.f, 1.f), true))
+		this->m_GameState.m_bStopGame = !this->m_GameState.m_bStopGame;
 }
 
 void CGame::InputControlSnake()
 {
-	if (this->m_InputController.m_bIsPressed[input_controller::GAME_KEYS::UP]
-		&& field(this->m_GameState.m_fSnakeHead.x, this->m_GameState.m_fSnakeHead.y - 1) != this->m_GameState.m_fvSnakeBody[1])
-		this->m_GameState.m_fSnakeHead.m_dDirection = DIRECTION::UP;
+	for (auto i = 0; i < input_controller::GAME_KEYS::GAME_KEYS_MAX_SIZE; i++)
+	{
+		if (this->m_InputController.m_bIsPressed[i])
+		{
+			auto iCorrectXDirectionNoInverse = 0;
+			auto iCorrectYDirectionNoInverse = 0;
 
-	if (this->m_InputController.m_bIsPressed[input_controller::GAME_KEYS::DOWN]
-		&& field(this->m_GameState.m_fSnakeHead.x, this->m_GameState.m_fSnakeHead.y + 1) != this->m_GameState.m_fvSnakeBody[1])
-		this->m_GameState.m_fSnakeHead.m_dDirection = DIRECTION::DOWN;
+			switch (i)
+			{
+			case input_controller::GAME_KEYS::DOWN:
+				iCorrectYDirectionNoInverse = 1;
+				break;
+			case input_controller::GAME_KEYS::LEFT:
+				iCorrectXDirectionNoInverse = -1;
+				break;
+			case input_controller::GAME_KEYS::RIGHT:
+				iCorrectXDirectionNoInverse = 1;
+				break;
+			case input_controller::GAME_KEYS::UP:
+				iCorrectYDirectionNoInverse = -1;
+				break;
+			}
 
-	if (this->m_InputController.m_bIsPressed[input_controller::GAME_KEYS::LEFT]
-		&& field(this->m_GameState.m_fSnakeHead.x - 1, this->m_GameState.m_fSnakeHead.y) != this->m_GameState.m_fvSnakeBody[1])
-		this->m_GameState.m_fSnakeHead.m_dDirection = DIRECTION::LEFT;
+			if (!(field(this->m_GameState.m_fSnakeHead.x + iCorrectXDirectionNoInverse, this->m_GameState.m_fSnakeHead.y + iCorrectYDirectionNoInverse) != this->m_GameState.m_fvSnakeBody[1]))
+				continue;
 
-	if (this->m_InputController.m_bIsPressed[input_controller::GAME_KEYS::RIGHT]
-		&& field(this->m_GameState.m_fSnakeHead.x + 1, this->m_GameState.m_fSnakeHead.y) != this->m_GameState.m_fvSnakeBody[1])
-		this->m_GameState.m_fSnakeHead.m_dDirection = DIRECTION::RIGHT;
+			this->m_GameState.m_fSnakeHead.m_dDirection = (DIRECTION)(i + 1);
+		}
+	}
 }
 
 void CGame::DrawGame()
@@ -141,11 +158,36 @@ bool CGame::FindIntersectionGamePoint()
 	return ret;
 }
 
-bool CGame::AddButton(vec2 pos, vec2 size, color col)
+bool CGame::AddButton(vec2 pos, vec2 size, color col, bool activate_on_up)
 {
 	drawing::box(pos.x, pos.y, size.x, col);
-	auto coords = GetTouchCoords();
-	return GetIsTouched() && IntersectionRect(pos, size, vec2(coords.x, coords.y));
+
+	auto bIsTouched = GetIsTouched();
+	auto tcTouchCoords = GetTouchCoords();
+
+	bool bIsPressed = true;
+
+	if (activate_on_up)
+	{
+		bIsPressed = false;
+
+		static bool bIsDown = false;
+		static GAME_TICK_COUNTER gtcUpdateButton = GetTickCount();
+
+		if (bIsTouched)
+		{
+			if (!bIsDown && (GetTickCount() - gtcUpdateButton > 300))
+			{
+				bIsPressed = true;
+				bIsDown = true;
+				gtcUpdateButton = GetTickCount();
+			}
+		}
+		else
+			bIsDown = false;
+	}
+
+	return IntersectionRect(pos, size, vec2(tcTouchCoords.x, tcTouchCoords.y)) && bIsTouched && bIsPressed;
 }
 
 void CGame::AddFieldSquare(vec2 pos, color col)
@@ -283,6 +325,7 @@ void CGame::ClearGameState()
 	this->m_GameState.m_fSnakeHead.Set(field(this->m_iFieldSize[0] / 2, this->m_iFieldSize[1] - 2));
 	this->m_GameState.m_flSnakeSpeed = 800.f;
 	this->m_GameState.m_iSnakePoints = 0;
+	this->m_GameState.m_fvSnakeBody.clear();
 	this->m_GameState.m_fSnakeHead.m_dDirection = UP;
 }
 
