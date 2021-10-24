@@ -1,17 +1,20 @@
 #include "game.h"
 
-CGame::CGame(int width, int height, void* p_input, void* p_onpressed)
+CGame::CGame(int field_width, int field_height, int screeen_width, int screen_height, void* p_input, void* p_onpressed)
 {
 	srand(time(0));
 
-	this->m_DisplaySize.x = width;
-	this->m_DisplaySize.y = height;
+	this->m_iFieldSize.x = field_width;
+	this->m_iFieldSize.y = field_height;
 
-	CalculateFieldSize();
+	this->m_DisplaySize.x = screeen_width;
+	this->m_DisplaySize.y = screen_height;
 
-	this->m_GameState.m_fSnakeHead.Set(field(this->m_iFieldSize[0] / 2, this->m_iFieldSize[1] - 1));
-	this->m_GameState.m_flSnakeSpeed = 800.f;
-	this->m_GameState.m_fSnakeHead.m_dDirection = UP;
+	auto gs = GetGameState();
+
+	gs->m_fSnakeHead.Set(game_entity(this->m_iFieldSize.x / 2, this->m_iFieldSize.y - 1));
+	gs->m_flSnakeSpeed = 800.f;
+	gs->m_fSnakeHead.m_dDirection = UP;
 
 	this->m_pTouchCoords = p_input;
 	this->m_pIsTouched = p_onpressed;
@@ -26,11 +29,22 @@ CGame::~CGame()
 
 void CGame::Run()
 {
+	if (!CheckGameData())
+		return;
+
 	DrawInputs();
 
 	RunLogic();
 
 	DrawGame();
+}
+
+bool CGame::CheckGameData()
+{
+	if (!this->m_iFieldSize)
+		return false;
+
+	return true;
 }
 
 void CGame::RunLogic()
@@ -45,7 +59,7 @@ void CGame::RunLogic()
 		ClearGameState();
 
 	if (FindIntersectionGamePoint())
-		SnakeLevelUp();
+		SnakeScoreUp();
 }
 
 CGame::touch_coords CGame::GetTouchCoords()
@@ -60,6 +74,9 @@ bool CGame::GetIsTouched()
 
 void CGame::DrawInputs()
 {
+	auto gs = GetGameState();
+	auto ic = GetInputController();
+
 	/*if (GetIsTouched())
 		LOGI("[+] %s. %d, %d", __FUNCTION__, GetTouchCoords().x, GetTouchCoords().y);*/
 
@@ -71,26 +88,29 @@ void CGame::DrawInputs()
 	auto iScreenCenterY = (this->m_DisplaySize.y / 2.f) + 80.f;
 
 	if (AddButton(vec2(iScreenCenterX, iScreenCenterY + 200.f), vButtonSize, color(1.f, 0.f, 0.f, 1.f)))
-		this->m_InputController.m_bIsPressed[input_controller::GAME_KEYS::UP] = true;
+		ic->m_bIsPressed[input_controller::GAME_KEYS::UP] = true;
 
 	if (AddButton(vec2(iScreenCenterX, iScreenCenterY + 600.f), vButtonSize, color(1.f, 0.f, 0.f, 1.f)))
-		this->m_InputController.m_bIsPressed[input_controller::GAME_KEYS::DOWN] = true;
+		ic->m_bIsPressed[input_controller::GAME_KEYS::DOWN] = true;
 
 	if (AddButton(vec2(iScreenCenterX - 300.f, iScreenCenterY + 400.f), vButtonSize, color(1.f, 0.f, 0.f, 1.f)))
-		this->m_InputController.m_bIsPressed[input_controller::GAME_KEYS::LEFT] = true;
+		ic->m_bIsPressed[input_controller::GAME_KEYS::LEFT] = true;
 
 	if (AddButton(vec2(iScreenCenterX + 300.f, iScreenCenterY + 400.f), vButtonSize, color(1.f, 0.f, 0.f, 1.f)))
-		this->m_InputController.m_bIsPressed[input_controller::GAME_KEYS::RIGHT] = true;
+		ic->m_bIsPressed[input_controller::GAME_KEYS::RIGHT] = true;
 
-	if (AddButton(vec2(70.f, this->m_DisplaySize.y - 250.f), vec2(200.f, 200.f), this->m_GameState.m_bStopGame ? color(1.f, 1.f, 0.5f, 1.f) : color(0.5f, 0.5f, 1.f, 1.f), true))
-		this->m_GameState.m_bStopGame = !this->m_GameState.m_bStopGame;
+	if (AddButton(vec2(70.f, this->m_DisplaySize.y - 250.f), vec2(200.f, 200.f), gs->m_bStopGame ? color(1.f, 1.f, 0.5f, 1.f) : color(0.5f, 0.5f, 1.f, 1.f), true))
+		gs->m_bStopGame = !gs->m_bStopGame;
 }
 
 void CGame::InputControlSnake()
 {
+	auto gs = GetGameState();
+	auto ic = GetInputController();
+
 	for (auto i = 0; i < input_controller::GAME_KEYS::GAME_KEYS_MAX_SIZE; i++)
 	{
-		if (this->m_InputController.m_bIsPressed[i])
+		if (ic->m_bIsPressed[i])
 		{
 			auto iCorrectXDirectionNoInverse = 0;
 			auto iCorrectYDirectionNoInverse = 0;
@@ -111,37 +131,39 @@ void CGame::InputControlSnake()
 				break;
 			}
 
-			if (!(field(this->m_GameState.m_fSnakeHead.x + iCorrectXDirectionNoInverse, this->m_GameState.m_fSnakeHead.y + iCorrectYDirectionNoInverse) != this->m_GameState.m_fvSnakeBody[1]))
+			if (!(game_entity(gs->m_fSnakeHead.x + iCorrectXDirectionNoInverse, gs->m_fSnakeHead.y + iCorrectYDirectionNoInverse) != gs->m_fvSnakeBody[1]))
 				continue;
 
-			this->m_GameState.m_fSnakeHead.m_dDirection = (DIRECTION)(i + 1);
+			gs->m_fSnakeHead.m_dDirection = (DIRECTION)(i + 1);
 		}
 	}
 }
 
 void CGame::DrawGame()
 {
-	auto iScreenSpaceGameFieldX = (this->m_DisplaySize.x / 2.f) - ((this->m_iCellSize.x * this->m_iFieldSize[0]) / 2.f);
+	auto gs = GetGameState();
 
-	for (int x = 1; x < this->m_iFieldSize[0]; ++x)
+	auto iScreenSpaceGameFieldX = (this->m_DisplaySize.x / 2.f) - ((this->m_iCellSize.x * this->m_iFieldSize.x) / 2.f);
+
+	for (int x = 1; x < this->m_iFieldSize.x; ++x)
 	{
-		for (int y = 1; y < this->m_iFieldSize[1]; ++y)
+		for (int y = 1; y < this->m_iFieldSize.y; ++y)
 		{
 			vec2 pos((m_iCellSize.x * x) + iScreenSpaceGameFieldX, (m_iCellSize.y * y) + 100.f);
 
 			color col(0.f, 0.7f, 0.5f, 1.f);
 
-			if (field(x, y) == this->m_GameState.m_fPoint)
+			if (game_entity(x, y) == gs->m_fPoint)
 				col = color(0.f, 0.5f, 0.7f, 1.f); //point
 
 			AddFieldSquare(pos, col);
 
-			if (field(x, y) == this->m_GameState.m_fSnakeHead)
+			if (game_entity(x, y) == gs->m_fSnakeHead)
 				AddFieldSquare(pos, color(1.f, 0.5f, 0.f, 1.f));
 
-			for (auto i = 0; i < this->m_GameState.m_iSnakePoints; i++)
+			for (auto i = 0; i < gs->m_iSnakePoints; i++)
 			{
-				if (field(x, y) == this->m_GameState.m_fvSnakeBody.at(i + 1))
+				if (game_entity(x, y) == gs->m_fvSnakeBody.at(i + 1))
 					AddFieldSquare(pos, color(1.f, 0.65f, 0.f, 1.f));
 			}
 		}
@@ -150,7 +172,9 @@ void CGame::DrawGame()
 
 bool CGame::FindIntersectionGamePoint()
 {
-	auto ret = this->m_GameState.m_fSnakeHead == this->m_GameState.m_fPoint;
+	auto gs = GetGameState();
+
+	auto ret = gs->m_fSnakeHead == gs->m_fPoint;
 
 	if (ret)
 		LOGI("[+] %s. Snake intersection a point", __FUNCTION__);
@@ -197,8 +221,10 @@ void CGame::AddFieldSquare(vec2 pos, color col)
 
 bool CGame::FindingExitFromPlayingZone()
 {
-	auto ret = this->m_GameState.m_fSnakeHead.x > (this->m_iFieldSize[0] - 1) || this->m_GameState.m_fSnakeHead.x < 1
-		|| this->m_GameState.m_fSnakeHead.y >(this->m_iFieldSize[1] - 1) || this->m_GameState.m_fSnakeHead.y < 1;
+	auto gs = GetGameState();
+
+	auto ret = gs->m_fSnakeHead.x > (this->m_iFieldSize.x - 1) || gs->m_fSnakeHead.x < 1
+		|| gs->m_fSnakeHead.y >(this->m_iFieldSize.y - 1) || gs->m_fSnakeHead.y < 1;
 
 	if (ret)
 		LOGI("[+] %s. Snake exit from game zone", __FUNCTION__);
@@ -208,9 +234,11 @@ bool CGame::FindingExitFromPlayingZone()
 
 bool CGame::FindingCollisionSnakeBody()
 {
-	for (int i = 0; i < this->m_GameState.m_iSnakePoints; i++)
+	auto gs = GetGameState();
+
+	for (int i = 0; i < gs->m_iSnakePoints; i++)
 	{
-		if (this->m_GameState.m_fSnakeHead == this->m_GameState.m_fvSnakeBody[i + 1])
+		if (gs->m_fSnakeHead == gs->m_fvSnakeBody[i + 1])
 		{
 			LOGI("[+] %s. Snake intersect yourself", __FUNCTION__);
 			return true;
@@ -221,96 +249,95 @@ bool CGame::FindingCollisionSnakeBody()
 
 void CGame::UpdateGameTick()
 {
-	if (!this->m_GameState.m_bStopGame)
+	auto gs = GetGameState();
+
+	if (!gs->m_bStopGame)
 	{
-		if (this->m_GameState.m_bUpdateSnake && GetTickCount() - this->m_GameState.m_gtcGameTick > this->m_GameState.m_flSnakeSpeed)
-		{
-			this->m_GameState.m_bUpdateSnake = false;
-		}
-		else if (!this->m_GameState.m_bUpdateSnake)
-		{
-			this->m_GameState.m_bUpdateSnake = true;
-		}
+		if (gs->m_bUpdateSnake && GetTickCount() - gs->m_gtcGameTick > gs->m_flSnakeSpeed)
+			gs->m_bUpdateSnake = false;
+		else if (!gs->m_bUpdateSnake)
+			gs->m_bUpdateSnake = true;
 	}
 }
 
 void CGame::UpdateSnakeMovement()
 {
-	if (!this->m_GameState.m_bStopGame)
-	{
-		if (!this->m_GameState.m_bUpdateSnake)
-		{
-			if (this->m_GameState.m_fSnakeHead.m_dDirection == UP) 
-				this->m_GameState.m_fSnakeHead.y -= 1;
-			else if (this->m_GameState.m_fSnakeHead.m_dDirection == DOWN) 
-				this->m_GameState.m_fSnakeHead.y += 1;
-			else if (this->m_GameState.m_fSnakeHead.m_dDirection == LEFT) 
-				this->m_GameState.m_fSnakeHead.x -= 1;
-			else if (this->m_GameState.m_fSnakeHead.m_dDirection == RIGHT) 
-				this->m_GameState.m_fSnakeHead.x += 1;
+	auto gs = GetGameState();
 
-			this->m_GameState.m_iSnakeHistory++;
-			this->m_GameState.m_gtcGameTick = GetTickCount();
+	if (!gs->m_bStopGame)
+	{
+		if (!gs->m_bUpdateSnake)
+		{
+			if (gs->m_fSnakeHead.m_dDirection == UP) 
+				gs->m_fSnakeHead.y -= 1;
+			else if (gs->m_fSnakeHead.m_dDirection == DOWN)
+				gs->m_fSnakeHead.y += 1;
+			else if (gs->m_fSnakeHead.m_dDirection == LEFT)
+				gs->m_fSnakeHead.x -= 1;
+			else if (gs->m_fSnakeHead.m_dDirection == RIGHT)
+				gs->m_fSnakeHead.x += 1;
+
+			gs->m_iSnakeHistory++;
+			gs->m_gtcGameTick = GetTickCount();
 		}
 	}
 }
 
 void CGame::SnakeHistoryCollector()
 {
-	if (!this->m_GameState.m_bUpdateSnake)
+	auto gs = GetGameState();
+
+	if (!gs->m_bUpdateSnake)
 	{
-		std::vector<field>temp;
-		temp = this->m_GameState.m_fvSnakeBody;
+		std::vector<game_entity>temp;
+		temp = gs->m_fvSnakeBody;
 		std::reverse(std::begin(temp), std::end(temp));
-		temp.push_back(this->m_GameState.m_fSnakeHead);
+		temp.push_back(gs->m_fSnakeHead);
 		std::reverse(std::begin(temp), std::end(temp));
-		this->m_GameState.m_fvSnakeBody = temp;
+		gs->m_fvSnakeBody = temp;
 	}
 }
 
 void CGame::SetPointPosition()
 {
-	if (!this->m_GameState.m_fPoint)
+	auto gs = GetGameState();
+
+	if (!gs->m_fPoint)
 	{
-		int iXResult = rand() % (this->m_iFieldSize[0] - 1) + 1;
-		int iYResult = rand() % (this->m_iFieldSize[1] - 1) + 1;
-		if (this->m_GameState.m_iSnakePoints > 0)
+		int iXResult = rand() % (this->m_iFieldSize.x - 1) + 1;
+		int iYResult = rand() % (this->m_iFieldSize.y - 1) + 1;
+		if (gs->m_iSnakePoints > 0)
 		{
-			for (int i = 0; i < this->m_GameState.m_iSnakePoints; i++)
+			for (int i = 0; i < gs->m_iSnakePoints; i++)
 			{
-				if (field(iXResult, iYResult) != this->m_GameState.m_fvSnakeBody[i])
+				if (game_entity(iXResult, iYResult) != gs->m_fvSnakeBody[i])
 				{
-					this->m_GameState.m_fPoint.x = iXResult;
-					this->m_GameState.m_fPoint.y = iYResult;
-					LOGI("[+] %s. New point position x: %d, y: %d", __FUNCTION__, this->m_GameState.m_fPoint.x, this->m_GameState.m_fPoint.y);
+					gs->m_fPoint.x = iXResult;
+					gs->m_fPoint.y = iYResult;
+					LOGI("[+] %s. New point position x: %d, y: %d", __FUNCTION__, gs->m_fPoint.x, gs->m_fPoint.y);
 				}
 			}
 		}
 		else
 		{
-			this->m_GameState.m_fPoint.x = iXResult;
-			this->m_GameState.m_fPoint.y = iYResult;
+			gs->m_fPoint.x = iXResult;
+			gs->m_fPoint.y = iYResult;
 		}
 	}
 }
 
-void CGame::SnakeLevelUp()
+void CGame::SnakeScoreUp()
 {
-	this->m_GameState.m_flSnakeSpeed -= this->m_GameState.m_flSnakeSpeed / 40.f;
-	this->m_GameState.m_fPoint.Set(field());
-	this->m_GameState.m_iSnakePoints++;
+	auto gs = GetGameState();
+
+	gs->m_flSnakeSpeed -= gs->m_flSnakeSpeed / 40.f;
+	gs->m_fPoint.Set();
+	gs->m_iSnakePoints++;
 }
 
 void CGame::CleanupInput()
 {
-	memset(&this->m_InputController, 0, sizeof(input_controller));
-}
-
-GAME_TICK_COUNTER CGame::GetTickCount()
-{
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	return (tv.tv_sec * 1000 + tv.tv_usec / 1000);
+	memset(GetInputController(), 0, sizeof(input_controller));
 }
 
 bool CGame::IntersectionRect(vec2 pos, vec2 size, vec2 point)
@@ -320,16 +347,31 @@ bool CGame::IntersectionRect(vec2 pos, vec2 size, vec2 point)
 
 void CGame::ClearGameState()
 {
+	auto gs = GetGameState();
+
 	LOGI("[+] %s. Clearing game state...", __FUNCTION__);
-	this->m_GameState.m_fPoint.Set(field());
-	this->m_GameState.m_fSnakeHead.Set(field(this->m_iFieldSize[0] / 2, this->m_iFieldSize[1] - 2));
-	this->m_GameState.m_flSnakeSpeed = 800.f;
-	this->m_GameState.m_iSnakePoints = 0;
-	this->m_GameState.m_fvSnakeBody.clear();
-	this->m_GameState.m_fSnakeHead.m_dDirection = UP;
+
+	gs->m_fPoint.Set();
+	gs->m_fSnakeHead.Set(game_entity(this->m_iFieldSize.x / 2, this->m_iFieldSize.y - 2));
+	gs->m_flSnakeSpeed = 800.f;
+	gs->m_iSnakePoints = 0;
+	gs->m_fvSnakeBody.clear();
+	gs->m_fSnakeHead.m_dDirection = UP;
 }
 
-void CGame::CalculateFieldSize()
+CGame::game_state* CGame::GetGameState()
 {
+	return &this->m_GameState;
+}
 
+CGame::input_controller* CGame::GetInputController()
+{
+	return &this->m_InputController;
+}
+
+GAME_TICK_COUNTER CGame::GetTickCount()
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return (tv.tv_sec * 1000 + tv.tv_usec / 1000);
 }

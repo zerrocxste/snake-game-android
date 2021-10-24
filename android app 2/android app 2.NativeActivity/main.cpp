@@ -141,7 +141,7 @@ static void engine_draw_frame(struct engine* engine) {
 
 	drawing::setup_view(width, height);
 
-	static CGame Game(width, height, &engine->state.x, &is_touched);
+	static CGame Game(27, 40, width, height, &engine->state.x, &is_touched);
 
 	Game.Run();
 
